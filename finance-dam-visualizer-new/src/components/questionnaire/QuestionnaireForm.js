@@ -191,7 +191,14 @@ const StepLabel = styled.div`
 `;
 
 const QuestionnaireForm = () => {
-  const { saveQuestionnaireData, saveDreamLifeText, loading, error } = useData();
+  const { 
+    saveQuestionnaireData, 
+    saveDreamLifeText, 
+    loading, 
+    setLoading, 
+    error 
+  } = useData();
+  const [formError, setError] = useState('');
   const navigate = useNavigate();
   
   const [currentStep, setCurrentStep] = useState(1);
@@ -308,10 +315,16 @@ const QuestionnaireForm = () => {
   };
   
   const nextStep = () => {
+    // Clear any error messages when navigating
+    setError('');
+    setSuccessMessage('');
     setCurrentStep(prev => Math.min(prev + 1, 5));
   };
   
   const prevStep = () => {
+    // Clear any error messages when navigating
+    setError('');
+    setSuccessMessage('');
     setCurrentStep(prev => Math.max(prev - 1, 1));
   };
   
@@ -320,90 +333,83 @@ const QuestionnaireForm = () => {
     return `$${parseFloat(value).toLocaleString()}`;
   };
   
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
+    console.log("Form submission started - simplified method");
     
-    // Calculate all the financial totals and metrics
-    const financialTotals = calculateTotals();
-    
-    // Create the financial data object to be saved
-    const financialData = {
-      personalInfo: {
-        name: formData.name,
-        email: formData.email,
-        age: parseInt(formData.age) || 0
-      },
-      
-      income: {
-        monthlyIncome: parseFloat(formData.monthlyIncome) || 0,
-        otherIncome: parseFloat(formData.otherIncome) || 0,
-        totalIncome: financialTotals.totalMonthlyIncome
-      },
-      
-      expenses: {
-        housing: parseFloat(formData.housing) || 0,
-        utilities: parseFloat(formData.utilities) || 0,
-        food: parseFloat(formData.food) || 0,
-        transportation: parseFloat(formData.transportation) || 0,
-        healthcare: parseFloat(formData.healthcare) || 0,
-        entertainment: parseFloat(formData.entertainment) || 0,
-        otherExpenses: parseFloat(formData.otherExpenses) || 0,
-        totalExpenses: financialTotals.totalMonthlyExpenses
-      },
-      
-      assets: {
-        cashSavings: parseFloat(formData.cashSavings) || 0,
-        investments: parseFloat(formData.investments) || 0,
-        realEstate: parseFloat(formData.realEstate) || 0,
-        otherAssets: parseFloat(formData.otherAssets) || 0,
-        totalAssets: financialTotals.totalAssets
-      },
-      
-      liabilities: {
-        creditCardDebt: parseFloat(formData.creditCardDebt) || 0,
-        studentLoans: parseFloat(formData.studentLoans) || 0,
-        mortgages: parseFloat(formData.mortgages) || 0,
-        otherDebts: parseFloat(formData.otherDebts) || 0,
-        totalLiabilities: financialTotals.totalLiabilities
-      },
-      
-      goals: {
-        shortTermGoals: formData.shortTermGoals,
-        longTermGoals: formData.longTermGoals,
-        retirementPlans: formData.retirementPlans
-      },
-      
-      // Calculated metrics
-      netWorth: financialTotals.netWorth,
-      monthlyCashFlow: financialTotals.monthlyCashFlow,
-      debtToIncomeRatio: financialTotals.totalLiabilities / 
-        (financialTotals.totalMonthlyIncome * 12) * 100,
-      
-      // Spending categories for visualization
-      spendingCategories: financialTotals.spendingCategories,
-      
-      // Add the creation timestamp
-      createdAt: new Date()
-    };
+    // Reset states
+    setSuccessMessage('');
+    setError('');
     
     try {
-      // Save the questionnaire data
-      await saveQuestionnaireData(financialData);
+      // Calculate financial totals - synchronous operation
+      const financialTotals = calculateTotals();
       
-      // Save the dream life text separately
-      if (formData.dreamLifeText) {
-        await saveDreamLifeText(formData.dreamLifeText);
-      }
+      // Create the financial data object
+      const financialData = {
+        personalInfo: {
+          name: formData.name,
+          email: formData.email,
+          age: parseInt(formData.age) || 0
+        },
+        income: {
+          monthlyIncome: parseFloat(formData.monthlyIncome) || 0,
+          otherIncome: parseFloat(formData.otherIncome) || 0,
+          totalIncome: financialTotals.totalMonthlyIncome
+        },
+        expenses: {
+          housing: parseFloat(formData.housing) || 0,
+          utilities: parseFloat(formData.utilities) || 0,
+          food: parseFloat(formData.food) || 0,
+          transportation: parseFloat(formData.transportation) || 0,
+          healthcare: parseFloat(formData.healthcare) || 0,
+          entertainment: parseFloat(formData.entertainment) || 0,
+          otherExpenses: parseFloat(formData.otherExpenses) || 0,
+          totalExpenses: financialTotals.totalMonthlyExpenses
+        },
+        assets: {
+          cashSavings: parseFloat(formData.cashSavings) || 0,
+          investments: parseFloat(formData.investments) || 0,
+          realEstate: parseFloat(formData.realEstate) || 0,
+          otherAssets: parseFloat(formData.otherAssets) || 0,
+          totalAssets: financialTotals.totalAssets
+        },
+        liabilities: {
+          creditCardDebt: parseFloat(formData.creditCardDebt) || 0,
+          studentLoans: parseFloat(formData.studentLoans) || 0,
+          mortgages: parseFloat(formData.mortgages) || 0,
+          otherDebts: parseFloat(formData.otherDebts) || 0,
+          totalLiabilities: financialTotals.totalLiabilities
+        },
+        goals: {
+          shortTermGoals: formData.shortTermGoals,
+          longTermGoals: formData.longTermGoals,
+          retirementPlans: formData.retirementPlans
+        },
+        netWorth: financialTotals.netWorth,
+        monthlyCashFlow: financialTotals.monthlyCashFlow,
+        debtToIncomeRatio: financialTotals.totalLiabilities / 
+          (financialTotals.totalMonthlyIncome * 12) * 100,
+        spendingCategories: financialTotals.spendingCategories,
+        createdAt: new Date()
+      };
       
-      setSuccessMessage('Your financial data has been saved successfully!');
+      // Step 1: Save to localStorage first (most critical)
+      localStorage.setItem('userFinancialData', JSON.stringify(financialData));
       
-      // Redirect to dashboard after a short delay
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 2000);
+      // Step 2: Save dream life text to localStorage
+      const dreamText = formData.dreamLifeText || '';
+      localStorage.setItem('dreamLifeText', dreamText);
       
-    } catch (err) {
-      console.error('Error saving data:', err);
+      // Step 3: Show success message
+      alert("Your data has been saved successfully! Redirecting to dashboard...");
+      
+      // Step 4: Use most direct approach - hard page refresh to dashboard
+      window.location.href = '/dashboard';
+      
+    } catch (error) {
+      console.error("Error in form submission:", error);
+      setError("An error occurred while saving your data. Please try again.");
     }
   };
   
@@ -440,7 +446,7 @@ const QuestionnaireForm = () => {
       </ProgressBar>
       
       {successMessage && <SuccessMessage>{successMessage}</SuccessMessage>}
-      {error && <ErrorMessage>{error}</ErrorMessage>}
+      {(error || formError) && <ErrorMessage>{formError || error}</ErrorMessage>}
       
       <Form onSubmit={handleSubmit}>
         {/* Step 1: Basic Information */}
@@ -798,8 +804,8 @@ const QuestionnaireForm = () => {
               Next
             </Button>
           ) : (
-            <Button type="submit" primary disabled={loading}>
-              {loading ? 'Saving...' : 'Submit'}
+            <Button type="submit" primary>
+              Submit
             </Button>
           )}
         </ButtonGroup>

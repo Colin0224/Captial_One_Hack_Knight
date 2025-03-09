@@ -148,8 +148,47 @@ const EmptyStateIcon = styled.div`
 
 const DashboardPage = () => {
   const { userFinancialData, dreamLifeText, loading, error } = useData();
-  // No currentUser needed
+  
+  // Create a local function to handle setting financial data in localStorage
+  const setLocalFinancialData = (data) => {
+    localStorage.setItem('userFinancialData', JSON.stringify(data));
+    // Note: we can't set the data in context directly since the setter isn't exposed
+  }
   const navigate = useNavigate();
+  const [localLoading, setLocalLoading] = React.useState(true);
+  
+  // Check localStorage for data if context is empty
+  React.useEffect(() => {
+    // If we already have data in context, we're good
+    if (userFinancialData) {
+      setLocalLoading(false);
+      return;
+    }
+    
+    try {
+      // Try to load from localStorage
+      const storedData = localStorage.getItem('userFinancialData');
+      const storedDreamText = localStorage.getItem('dreamLifeText');
+      
+      if (storedData) {
+        // Parse the localStorage data
+        const parsedData = JSON.parse(storedData);
+        console.log("Dashboard: Found data in localStorage:", parsedData);
+        
+        // Note: We can't update the context directly, but we use this for the UI to rerender
+        window.financialData = parsedData;
+      }
+      
+      if (storedDreamText) {
+        // Store in window object for UI to access
+        window.dreamLifeText = storedDreamText;
+      }
+    } catch (err) {
+      console.error("Error loading from localStorage:", err);
+    } finally {
+      setLocalLoading(false);
+    }
+  }, []);
   
   // Helper function to format currency
   const formatCurrency = (value) => {
@@ -278,10 +317,22 @@ const DashboardPage = () => {
     return insights;
   };
   
-  const insights = generateInsights(userFinancialData);
+  // Use either context data or window data if available
+  const actualData = userFinancialData || window.financialData;
+  
+  // Also handle dream life text similarly
+  const actualDreamText = dreamLifeText || window.dreamLifeText || localStorage.getItem('dreamLifeText');
+  
+  // Only generate insights if we have data
+  const insights = actualData ? generateInsights(actualData) : [];
+  
+  // If we had to use window.financialData, log it
+  if (!userFinancialData && window.financialData) {
+    console.log("Using window.financialData since context data is not available");
+  }
   
   // If loading, show spinner
-  if (loading && !userFinancialData) {
+  if ((loading || localLoading) && !actualData) {
     return (
       <PageContainer>
         <LoadingSpinner fullScreen text="Loading your financial dashboard..." />
@@ -289,8 +340,25 @@ const DashboardPage = () => {
     );
   }
   
-  // If no data, show empty state
-  if (!userFinancialData) {
+  // Try one more direct check with localStorage before showing empty state
+  const checkLocalStorage = () => {
+    try {
+      const storedData = localStorage.getItem('userFinancialData');
+      if (storedData) {
+        // Parse and use for rendering (we can't set in context)
+        const parsedData = JSON.parse(storedData);
+        console.log("Last attempt to load data from localStorage:", parsedData);
+        window.financialData = parsedData;
+        return parsedData;
+      }
+    } catch (err) {
+      console.error("Error in final localStorage check:", err);
+    }
+    return null;
+  };
+  
+  // If no data, show empty state (after one final localStorage check)
+  if (!actualData && !checkLocalStorage()) {
     return (
       <PageContainer>
         <PageHeader>
@@ -328,13 +396,13 @@ const DashboardPage = () => {
         title="Your Financial Dam"
         description="A visualization of your current financial situation"
         financialData={{
-          totalAssets: userFinancialData.assets.totalAssets,
-          totalLiabilities: userFinancialData.liabilities.totalLiabilities,
-          netWorth: userFinancialData.netWorth,
-          monthlyIncome: userFinancialData.income.totalIncome,
-          monthlyExpenses: userFinancialData.expenses.totalExpenses
+          totalAssets: actualData.assets.totalAssets,
+          totalLiabilities: actualData.liabilities.totalLiabilities,
+          netWorth: actualData.netWorth,
+          monthlyIncome: actualData.income.totalIncome,
+          monthlyExpenses: actualData.expenses.totalExpenses
         }}
-        spendingCategories={userFinancialData.spendingCategories}
+        spendingCategories={actualData.spendingCategories}
       />
       
       <DashboardGrid>
@@ -347,11 +415,11 @@ const DashboardPage = () => {
             </InsightCard>
           ))}
           
-          {dreamLifeText && (
+          {actualDreamText && (
             <Card>
               <SectionTitle>Your Dream Life</SectionTitle>
               <p style={{ color: 'var(--text-dim)', lineHeight: '1.6' }}>
-                {dreamLifeText}
+                {actualDreamText}
               </p>
               <Button onClick={() => navigate('/future-scenarios')}>
                 View Future Scenarios
@@ -366,28 +434,28 @@ const DashboardPage = () => {
             <StatCard>
               <StatLabel>Net Worth</StatLabel>
               <StatValue>
-                {formatCurrency(userFinancialData.netWorth)}
+                {formatCurrency(actualData.netWorth)}
               </StatValue>
             </StatCard>
             
-            <StatCard positive={userFinancialData.monthlyCashFlow > 0} negative={userFinancialData.monthlyCashFlow < 0}>
+            <StatCard positive={actualData.monthlyCashFlow > 0} negative={actualData.monthlyCashFlow < 0}>
               <StatLabel>Monthly Cash Flow</StatLabel>
-              <StatValue positive={userFinancialData.monthlyCashFlow > 0} negative={userFinancialData.monthlyCashFlow < 0}>
-                {formatCurrency(userFinancialData.monthlyCashFlow)}
+              <StatValue positive={actualData.monthlyCashFlow > 0} negative={actualData.monthlyCashFlow < 0}>
+                {formatCurrency(actualData.monthlyCashFlow)}
               </StatValue>
             </StatCard>
             
             <StatCard>
               <StatLabel>Total Assets</StatLabel>
               <StatValue>
-                {formatCurrency(userFinancialData.assets.totalAssets)}
+                {formatCurrency(actualData.assets.totalAssets)}
               </StatValue>
             </StatCard>
             
-            <StatCard negative={userFinancialData.liabilities.totalLiabilities > 0}>
+            <StatCard negative={actualData.liabilities.totalLiabilities > 0}>
               <StatLabel>Total Debt</StatLabel>
-              <StatValue negative={userFinancialData.liabilities.totalLiabilities > 0}>
-                {formatCurrency(userFinancialData.liabilities.totalLiabilities)}
+              <StatValue negative={actualData.liabilities.totalLiabilities > 0}>
+                {formatCurrency(actualData.liabilities.totalLiabilities)}
               </StatValue>
             </StatCard>
           </StatsGrid>
@@ -397,24 +465,24 @@ const DashboardPage = () => {
             <StatCard>
               <StatLabel>Total Monthly Income</StatLabel>
               <StatValue positive>
-                {formatCurrency(userFinancialData.income.totalIncome)}
+                {formatCurrency(actualData.income.totalIncome)}
               </StatValue>
             </StatCard>
             
-            {userFinancialData.income.monthlyIncome > 0 && (
+            {actualData.income.monthlyIncome > 0 && (
               <div style={{ marginTop: '1rem' }}>
                 <StatLabel>Primary Income</StatLabel>
                 <p style={{ color: 'var(--text-dim)' }}>
-                  {formatCurrency(userFinancialData.income.monthlyIncome)}
+                  {formatCurrency(actualData.income.monthlyIncome)}
                 </p>
               </div>
             )}
             
-            {userFinancialData.income.otherIncome > 0 && (
+            {actualData.income.otherIncome > 0 && (
               <div style={{ marginTop: '1rem' }}>
                 <StatLabel>Other Income</StatLabel>
                 <p style={{ color: 'var(--text-dim)' }}>
-                  {formatCurrency(userFinancialData.income.otherIncome)}
+                  {formatCurrency(actualData.income.otherIncome)}
                 </p>
               </div>
             )}

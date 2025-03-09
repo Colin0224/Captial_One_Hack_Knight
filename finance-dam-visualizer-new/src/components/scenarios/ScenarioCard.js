@@ -75,7 +75,8 @@ const ScenarioCard = ({
   tags = [],
   financialData,
   description,
-  damTitle
+  damTitle,
+  spendingCategories
 }) => {
   // Generate tag colors based on content
   const getTagColor = (tagName) => {
@@ -113,7 +114,10 @@ const ScenarioCard = ({
         title={damTitle || "Financial Projection"} 
         description="This visualization shows the projected financial state for this scenario"
         financialData={financialData}
-        height={250}
+        spendingCategories={spendingCategories || financialData.spendingCategories || []}
+        showMetrics={true}
+        showLegend={true}
+        height={300}
       />
       
       {description && (
