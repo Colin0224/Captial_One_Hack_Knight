@@ -29,7 +29,7 @@ exports.setBalance = onRequest(async (request, response) => {
   const { userId, balance } = request.body;
 
   if (!userId || balance === undefined) {
-    return response.status(400).send("Both User ID and balance are required.");
+    return response.status(400).send("Both User ID and Balance are required.");
   }
 
   try {
@@ -38,8 +38,8 @@ exports.setBalance = onRequest(async (request, response) => {
       balance: balance,
     }, { merge: true });
 
-    logger.info(`Balance set for user ${userId}: ${balance}`);
-    response.status(200).send(`Balance for user ${userId} set to ${balance}`);
+    logger.info(`Balance for user ${userId}: ${balance}`);
+    response.status(200).send(`Set user ${userId} balance to ${balance}`);
   } catch (error) {
     logger.error("Error setting balance", error);
     response.status(500).send("Error setting balance.");
@@ -51,7 +51,7 @@ exports.setGoal = onRequest(async (request, response) => {
   const { userId, goal } = request.body;
 
   if (!userId || !goal) {
-    return response.status(400).send("User ID and goal are required.");
+    return response.status(400).send("User ID and Goal are required.");
   }
 
   try {
@@ -60,8 +60,8 @@ exports.setGoal = onRequest(async (request, response) => {
       goal: goal,
     }, { merge: true });
 
-    logger.info(`Goal set for user ${userId}: ${goal}`);
-    response.status(200).send(`Goal for user ${userId} set to ${goal}`);
+    logger.info(`Goal for user ${userId}: ${goal}`);
+    response.status(200).send(`Goal for user ${userId} is ${goal}`);
   } catch (error) {
     logger.error("Error setting goal", error);
     response.status(500).send("Error setting goal.");
@@ -96,7 +96,7 @@ exports.advice = onRequest(async (request, response) => {
     let aiAdvice = await getChatGPTAdvice(balance, goal);
 
     //Advice is returned
-    logger.info(`ChatGPT Advice for user ${userId}: ${aiAdvice}`);
+    logger.info(`Advice for user ${userId}: ${aiAdvice}`);
     response.status(200).send(aiAdvice);
   } catch (error) {
     logger.error("Error providing advice", error);
@@ -110,7 +110,7 @@ async function getChatGPTAdvice(balance, goal) {
     //ChatGPT call
     const response = await axios.post('https://api.openai.com/v1/completions', {
       model: 'gpt-4.5-turbo',
-      prompt: `I have a balance of $${balance} and my goal is $${goal}. Can you give me personalized advice to help me reach my goal?`,
+      prompt: `I have a balance of $${balance} and my goal is $${goal}. Can you give me advice to help me reach my goal?`,
       max_tokens: 100
     }, {
       headers: {
